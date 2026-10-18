@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>Герберы для тебя ✨</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#020205;font-family:Georgia,'Times New Roman',serif}canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;-webkit-tap-highlight-color:transparent}.overlay{pointer-events:none;position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;transition:opacity 1s}.overlay h1{font-size:clamp(25px,4vw,51px);font-weight:400;margin:0;color:#fff4f9;text-shadow:0 0 20px #ff4b9b50}.overlay p{font-family:system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;font-size:11px;color:#d8acc4;margin-top:16px}.buttons{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;z-index:5}.buttons button{border:1px solid #ffffff2a;background:#ffffff0d;color:#fff;border-radius:40px;padding:12px 19px;cursor:pointer;backdrop-filter:blur(12px);font-size:13px;transition:background .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.buttons button:hover{background:#ffffff27}.stars{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 100%,#2e09221c,transparent 65%)}@media(max-width:600px){.buttons{bottom:calc(14px + env(safe-area-inset-bottom, 0px));width:calc(100% - 24px);justify-content:center;gap:8px}.buttons button{flex:1;max-width:180px;min-height:48px;padding:10px 9px;font-size:13px}.overlay{padding:22px 24px 100px}.overlay h1{font-size:clamp(25px,7vw,36px)}.overlay p{font-size:10px;line-height:1.6}}
+</style>
+</head>
+<body>
+<canvas id="garden" aria-label="Интерактивная открытка: нажмите в любой точке, чтобы выросла гербера"></canvas><div class="stars"></div>
+<div class="overlay" id="hint"><h1>Нажми, чтобы расцвели герберы</h1><p>Каждый цветок — для тебя ♡</p></div>
+<div class="buttons"><button id="bouquet">🌼 Создать букет</button><button id="clear">↺ Начать заново</button></div>
+<script>
+(()=>{
+const canvas=document.getElementById('garden'),ctx=canvas.getContext('2d'),hint=document.getElementById('hint');
+let w=0,h=0,dpr=1,flowers=[],dust=[],last=0,started=false;
+const rand=(a,b)=>a+Math.random()*(b-a),ease=t=>1-Math.pow(1-Math.min(1,Math.max(0,t)),3),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const palettes=[
+ ['#ff4b86','#ff8db8','#f6db55','#7b4a17'],
+ ['#ff6d43','#ffac6e','#f6d34a','#744517'],
+ ['#f55ca4','#f9a0c8','#f6d24a','#7e4918'],
+ ['#ff7c57','#ffd17d','#f2ce43','#764516'],
+ ['#c95cff','#efb1ff','#eed24e','#6b4018'],
+ ['#ff4f6b','#ff9e8e','#f3d650','#794719']
+];
+function resize(){const oldW=w,oldH=h;w=innerWidth;h=innerHeight;if(oldW&&oldH&&(oldW!==w||oldH!==h)){for(const f of flowers){f.x=f.x*w/oldW;f.y=f.y*h/oldH;f.baseY=f.baseY*h/oldH}}dpr=Math.min(devicePixelRatio||1,2);canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();
+function add(x,y,delay=0){let p=palettes[Math.floor(rand(0,palettes.length))],size=rand(34,56)*(w<500?.84:1),petals=Math.floor(rand(20,30));flowers.push({x:clamp(x,28,w-28),y:clamp(y,60,h-72),baseY:h+rand(15,80),size,p,phase:rand(0,6.28),curve:rand(-55,55),born:performance.now()+delay,petals,lean:rand(-.09,.09),petalSpread:rand(.22,.32)});if(flowers.length>100)flowers.shift();if(!started){started=true;hint.style.opacity='0';setTimeout(()=>hint.style.display='none',1000)}}
+function gerberaPetal(cx,cy,a,L,B,colors,open,innerScale=1){ctx.save();ctx.translate(cx,cy);ctx.rotate(a);ctx.scale(open*innerScale,open*innerScale);const grad=ctx.createLinearGradient(0,0,0,-L);grad.addColorStop(0,colors[1]);grad.addColorStop(.35,colors[0]);grad.addColorStop(1,colors[2]);ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(0,4);ctx.bezierCurveTo(-B*.28,-L*.18,-B*.55,-L*.56,0,-L);ctx.bezierCurveTo(B*.55,-L*.56,B*.28,-L*.18,0,4);ctx.fill();ctx.restore()}
+function renderGerbera(f,now){let age=(now-f.born)/1000;if(age<0)return;let grow=ease(age/1.5),bloom=ease((age-.92)/1.2);let sway=Math.sin(now*.0009+f.phase)*4*grow,topX=f.x+sway,topY=f.baseY+(f.y-f.baseY)*grow;ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+ctx.beginPath();ctx.moveTo(f.x+f.curve*.18,f.baseY);ctx.bezierCurveTo(f.x-f.curve*.55,f.baseY-(f.baseY-topY)*.34,f.x+f.curve,topY+(f.baseY-topY)*.33,topX,topY);const stemGrad=ctx.createLinearGradient(topX,topY,f.x,f.baseY);stemGrad.addColorStop(0,'#8fffb5');stemGrad.addColorStop(.45,'#39d98a');stemGrad.addColorStop(1,'#103f26');ctx.strokeStyle=stemGrad;ctx.lineWidth=2.7;ctx.shadowBlur=14;ctx.shadowColor='#41ff9a';ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle='rgba(196,255,214,0.75)';ctx.lineWidth=.85;ctx.stroke();
+if(age>.5){let leaf=ease((age-.5)/.58);for(let side of [-1,1]){let q=side===1?.52:.36,ly=f.baseY+(topY-f.baseY)*q,lx=f.x+f.curve*Math.sin(q*Math.PI)*.35;ctx.save();ctx.translate(lx,ly);ctx.rotate(side*.58);ctx.scale(leaf,leaf);ctx.fillStyle='#39834a';ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(side*26,-22,side*44,-58);ctx.quadraticCurveTo(side*8,-46,0,0);ctx.fill();ctx.restore()}}
+if(bloom>0){
+  ctx.save();ctx.translate(topX,topY);ctx.rotate(f.lean+Math.sin(now*.0007+f.phase)*.04);ctx.globalAlpha=Math.min(1,bloom*1.7);ctx.shadowBlur=18;ctx.shadowColor=f.p[0];
+  for(let ring=0; ring<2; ring++){
+    const offset=ring?Math.PI/f.petals:0;
+    const len=f.size*(ring?0.92:1.05);
+    const width=f.size*(ring?0.18:0.16);
+    const scale=ring?0.92:1;
+    for(let i=0;i<f.petals;i++){
+      const angle=i*Math.PI*2/f.petals - Math.PI/2 + offset;
+      gerberaPetal(0,0,angle,len*(0.94+0.1*Math.sin(i*1.7+ring)),width,f.p,bloom,scale);
+    }
+  }
+  // dark disc
+  ctx.shadowBlur=0;
+  const discR=f.size*.24*bloom;
+  const g1=ctx.createRadialGradient(-discR*.15,-discR*.18,1,0,0,discR*1.15);
+  g1.addColorStop(0,f.p[2]);
+  g1.addColorStop(.22,'#f1dc75');
+  g1.addColorStop(.24,f.p[3]);
+  g1.addColorStop(1,'#3e2206');
+  ctx.fillStyle=g1;
+  ctx.beginPath();ctx.arc(0,0,discR,0,Math.PI*2);ctx.fill();
+  // dotted seed texture
+  ctx.fillStyle='#d6a82d';
+  for(let i=0;i<38;i++){
+    const ang=i*2*Math.PI/38 + Math.sin(i)*.05;
+    const rr=discR*(0.18+0.62*((i%7)/7));
+    const px=Math.cos(ang)*rr, py=Math.sin(ang)*rr;
+    ctx.beginPath();ctx.arc(px,py,f.size*.012*bloom,0,Math.PI*2);ctx.fill();
+  }
+  ctx.fillStyle='#fff6b2';
+  ctx.beginPath();ctx.arc(-discR*.18,-discR*.18,f.size*.04*bloom,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  if(age<3.7&&Math.random()<.18) dust.push({x:topX+rand(-f.size,f.size),y:topY+rand(-f.size,f.size),vx:rand(-.35,.35),vy:rand(-1.1,-.25),life:1,rad:rand(.6,2.2),color:f.p[1]})
+}
+ctx.restore()}
+function draw(now){let delta=Math.min(40,now-last||16);last=now;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020205';ctx.fillRect(0,0,w,h);for(let f of flowers)renderGerbera(f,now);ctx.save();ctx.globalCompositeOperation='screen';for(let i=dust.length-1;i>=0;i--){let d=dust[i];d.x+=d.vx*delta/16;d.y+=d.vy*delta/16;d.life-=delta/1600;if(d.life<=0){dust.splice(i,1);continue}ctx.globalAlpha=d.life*.7;ctx.fillStyle=d.color;ctx.shadowBlur=9;ctx.shadowColor=d.color;ctx.beginPath();ctx.arc(d.x,d.y,d.rad,0,Math.PI*2);ctx.fill()}ctx.restore();requestAnimationFrame(draw)}requestAnimationFrame(draw);
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')e.preventDefault();add(e.clientX,e.clientY)});canvas.addEventListener('contextmenu',e=>e.preventDefault());document.getElementById('bouquet').addEventListener('click',()=>{let n=w<600?9:15;for(let i=0;i<n;i++){let x=w*(.13+.74*(i/(n-1)))+rand(-35,35),y=h*rand(.27,.66);add(x,y,i*145)}});document.getElementById('clear').addEventListener('click',()=>{flowers=[];dust=[];started=false;hint.style.display='flex';requestAnimationFrame(()=>hint.style.opacity='1')});
+// Стартовый экран остаётся полностью чёрным, цветы появляются только по клику или по кнопке букета.
+})();
+</script>
+</body>
+</html>
